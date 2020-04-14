@@ -42,6 +42,9 @@ router.get('/', async (req, res, next) => {
         },
         {
           title: { [Op.iLike]: filter }
+        },
+        {
+          subTitle: { [Op.iLike]: filter }
         }, 
         {
           description: { [Op.iLike]: filter }
