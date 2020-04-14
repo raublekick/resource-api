@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
   const Resource = sequelize.define('Resource', {
     name: DataTypes.STRING,
     title: DataTypes.STRING,
+    subTitle: DataTypes.STRING,
     coverPhoto: DataTypes.STRING,
     url: DataTypes.STRING,
     address: DataTypes.STRING,

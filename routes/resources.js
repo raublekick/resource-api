@@ -81,7 +81,7 @@ router.get('/:id', async (req, res, next) => {
 /**
  * @swagger
  * path:
- *  /resources/{id}/resources:
+ *  /resources/{id}/collection:
  *    get:
  *      summary: Get associated resources for the resource specified by id
  *      tags: [Resources]
@@ -95,9 +95,31 @@ router.get('/:id', async (req, res, next) => {
  *        "200":
  *          description: A list of resources
  */
-router.get('/:id/resources', async (req, res, next) => {
+router.get('/:id/collection', async (req, res, next) => {
   var resource = await Resource.findByPk(req.params.id, {include: ['Collection']});
   res.send(resource.Collection);
+});
+
+/**
+ * @swagger
+ * path:
+ *  /resources/{id}/belongs-to:
+ *    get:
+ *      summary: Gets resources where the specified ID is a child
+ *      tags: [Resources]
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          type: string
+ *          required: true
+ *          description: id of the resource
+ *      responses:
+ *        "200":
+ *          description: A list of resources
+ */
+router.get('/:id/belongs-to', async (req, res, next) => {
+  var resources = await Resource.findAll({include: [{ model: db.Resource, as: "Collection", where: {"$Collection.id$": req.params.id } }]});
+  res.send(resources);
 });
 
 module.exports = router;
