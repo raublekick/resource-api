@@ -23,6 +23,9 @@ passport.use(
             username: username,
           },
         });
+        if (!user) {
+          return done("Could not find user.");
+        }
         const passwordsMatch = await bcrypt.compare(password, user.password);
 
         if (passwordsMatch) {

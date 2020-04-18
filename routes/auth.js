@@ -56,6 +56,14 @@ const rounds = 12;
 router.post("/register", async (req, res) => {
   const user = req.body;
   try {
+    var existingUser = await User.findOne({
+      where: { username: user.username },
+    });
+
+    if (existingUser !== null) {
+      res.status(400).send({ error: "User already exists" });
+    }
+
     const passwordHash = await bcrypt.hash(user.password, rounds);
     user.password = passwordHash;
 
@@ -91,32 +99,32 @@ router.post("/register", async (req, res) => {
  */
 router.post("/login", (req, res) => {
   passport.authenticate("login", { session: false }, (error, user) => {
-    if (error || !user) {
-      res.status(400).json({ error });
-    }
+    if (error | !user) {
+      res.status(400).json({ error: error });
+    } else {
+      /** This is what ends up in our JWT */
+      const payload = {
+        username: user.username,
+        expires: Date.now() + parseInt(process.env.JWT_EXPIRATION_MS),
+      };
 
-    /** This is what ends up in our JWT */
-    const payload = {
-      username: user.username,
-      expires: Date.now() + parseInt(process.env.JWT_EXPIRATION_MS),
-    };
+      /** assigns payload to req.user */
+      req.login(payload, { session: false }, (error) => {
+        if (error) {
+          res.status(400).send({ error });
+        }
 
-    /** assigns payload to req.user */
-    req.login(payload, { session: false }, (error) => {
-      if (error) {
-        res.status(400).send({ error });
-      }
+        /** generate a signed json web token and return it in the response */
+        const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
 
-      /** generate a signed json web token and return it in the response */
-      const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
-
-      /** assign our jwt to the cookie */
-      res.status(200).send({
-        auth: true,
-        token: token,
-        message: "user found & logged in",
+        /** assign our jwt to the cookie */
+        res.status(200).send({
+          auth: true,
+          token: token,
+          message: "user found & logged in",
+        });
       });
-    });
+    }
   })(req, res);
 });
 
