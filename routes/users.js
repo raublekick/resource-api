@@ -1,4 +1,4 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
 
 /**
@@ -12,8 +12,8 @@ var router = express.Router();
  *        "200":
  *          description: A list of users objects
  */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get("/", function (req, res, next) {
+  res.send("respond with a resource");
 });
 
 /**
@@ -33,7 +33,7 @@ router.get('/', function(req, res, next) {
  *        "200":
  *          description: A users object
  */
-router.get('/:userId', function(req, res, next) {
+router.get("/:userId", function (req, res, next) {
   res.send(req.params);
 });
 

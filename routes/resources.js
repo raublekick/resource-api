@@ -1,8 +1,8 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
 const db = require("../database/models");
 const Op = db.Sequelize.Op;
-const Resource = require('../database/models').Resource;
+const Resource = require("../database/models").Resource;
 //var cors = require("cors");
 
 //router.all('*', cors());
@@ -23,36 +23,38 @@ const Resource = require('../database/models').Resource;
  *        "200":
  *          description: A list of resources filtered by search string
  */
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   let resources;
   var filter = "%" + req.query.search + "%";
   let filters = {
-    include: [{
-      model: db.Tag,
-      as: "Tags"
-    }]
+    include: [
+      {
+        model: db.Tag,
+        as: "Tags",
+      },
+    ],
   };
-  
+
   if (req.query.search) {
     console.log(filter);
     filters.where = {
       [Op.or]: [
         {
-          name: { [Op.iLike]: filter }
+          name: { [Op.iLike]: filter },
         },
         {
-          title: { [Op.iLike]: filter }
+          title: { [Op.iLike]: filter },
         },
         {
-          subTitle: { [Op.iLike]: filter }
-        }, 
-        {
-          description: { [Op.iLike]: filter }
+          subTitle: { [Op.iLike]: filter },
         },
         {
-          "$Tags.name$": { [Op.iLike]: filter }
-        }
-      ] 
+          description: { [Op.iLike]: filter },
+        },
+        {
+          "$Tags.name$": { [Op.iLike]: filter },
+        },
+      ],
     };
   }
   resources = await Resource.findAll(filters);
@@ -76,7 +78,7 @@ router.get('/', async (req, res, next) => {
  *        "200":
  *          description: A single resource
  */
-router.get('/:id', async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   var resource = await Resource.findByPk(req.params.id);
   res.send(resource);
 });
@@ -98,8 +100,10 @@ router.get('/:id', async (req, res, next) => {
  *        "200":
  *          description: A list of resources
  */
-router.get('/:id/collection', async (req, res, next) => {
-  var resource = await Resource.findByPk(req.params.id, {include: ['Collection']});
+router.get("/:id/collection", async (req, res, next) => {
+  var resource = await Resource.findByPk(req.params.id, {
+    include: ["Collection"],
+  });
   res.send(resource.Collection);
 });
 
@@ -120,8 +124,16 @@ router.get('/:id/collection', async (req, res, next) => {
  *        "200":
  *          description: A list of resources
  */
-router.get('/:id/belongs-to', async (req, res, next) => {
-  var resources = await Resource.findAll({include: [{ model: db.Resource, as: "Collection", where: {"$Collection.id$": req.params.id } }]});
+router.get("/:id/belongs-to", async (req, res, next) => {
+  var resources = await Resource.findAll({
+    include: [
+      {
+        model: db.Resource,
+        as: "Collection",
+        where: { "$Collection.id$": req.params.id },
+      },
+    ],
+  });
   res.send(resources);
 });
 
