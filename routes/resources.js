@@ -1,11 +1,30 @@
 var express = require("express");
 var router = express.Router();
+var passport = require("passport");
 const db = require("../database/models");
 const Op = db.Sequelize.Op;
 const Resource = require("../database/models").Resource;
-//var cors = require("cors");
 
-//router.all('*', cors());
+/**
+ * @swagger
+ * definitions:
+ *  Resource:
+ *     type: object
+ *     properties:
+ *       name:
+ *         type: string
+ *       title:
+ *         type: string
+ *       subTitle:
+ *         type: string
+ *       description:
+ *         type: string
+ *       url:
+ *         type: string
+ *       address:
+ *         type: string
+ */
+
 /**
  * @swagger
  * path:
@@ -136,5 +155,53 @@ router.get("/:id/belongs-to", async (req, res, next) => {
   });
   res.send(resources);
 });
+
+/**
+ * @swagger
+ * path:
+ *  /resources:
+ *    post:
+ *      summary: Register a new user
+ *      tags: [Resources]
+ *      parameters:
+ *        - in: body
+ *          name: resource
+ *          description: Resource object
+ *          required: true
+ *          schema:
+ *            $ref: '#definitions/Resource'
+ *      responses:
+ *        "200":
+ *          description: A resource id
+ */
+router.post(
+  "/",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    console.log(req.body);
+
+    const username = req.user.username;
+
+    const resource = req.body;
+    try {
+      var name = resource.title
+        .toLowerCase()
+        .replace(" ", "-")
+        .substring(0, 250);
+      resource.name = name;
+      var createdResource = await Resource.create(resource);
+
+      console.log("resource created");
+      res
+        .status(200)
+        .send({ id: createdResource.id, name: createdResource.name });
+    } catch (error) {
+      console.log(error);
+      res.status(400).send({
+        error: "Could not create the resource.",
+      });
+    }
+  }
+);
 
 module.exports = router;

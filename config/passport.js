@@ -41,16 +41,35 @@ passport.use(
 );
 
 const opts = {
-  jwtFromRequest: ExtractJWT.fromAuthHeaderWithScheme("JWT"),
+  jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken("JWT"),
   secretOrKey: jwtSecret.secret,
 };
 
 passport.use(
-  new JWTStrategy(opts, (jwtPayload, done) => {
-    if (Date.now() > jwtPayload.expires) {
-      return done("jwt expired");
-    }
+  new JWTStrategy(opts, async (jwtPayload, done) => {
+    console.log(jwtPayload);
 
-    return done(null, jwtPayload);
+    try {
+      if (Date.now() > jwtPayload.expires) {
+        return done("jwt expired");
+      }
+
+      var user = await User.findOne({
+        where: { username: jwtPayload.username },
+      });
+
+      if (user) {
+        return done(null, user.dataValues);
+      } else {
+        console.log("user not found");
+        return done(null, false);
+        // or you could create a new account
+      }
+
+      //return done(null, jwtPayload);
+    } catch (err) {
+      console.log(err);
+      return done(err, null);
+    }
   })
 );

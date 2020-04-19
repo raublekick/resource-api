@@ -69,8 +69,30 @@ router.post("/register", async (req, res) => {
 
     var createdUser = await User.create(user);
 
-    console.log("user created");
-    res.status(200).send({ username: createdUser.username });
+    const payload = {
+      username: createdUser.username,
+      expires: Date.now() + parseInt(process.env.JWT_EXPIRATION_MS),
+    };
+
+    /** assigns payload to req.user */
+    req.login(payload, { session: false }, (error) => {
+      if (error) {
+        res.status(400).send({ error });
+      }
+
+      /** generate a signed json web token and return it in the response */
+      const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
+
+      /** assign our jwt to the cookie */
+      res.status(200).send({
+        auth: true,
+        token: token,
+        user: {
+          username: createdUser.username,
+          lang: createdUser.lang,
+        },
+      });
+    });
   } catch (error) {
     res.status(400).send({
       error: "req body should take the form { username, password }",
@@ -121,7 +143,10 @@ router.post("/login", (req, res) => {
         res.status(200).send({
           auth: true,
           token: token,
-          message: "user found & logged in",
+          user: {
+            username: user.username,
+            lang: user.lang,
+          },
         });
       });
     }
