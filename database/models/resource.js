@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       url: DataTypes.STRING,
       address: DataTypes.STRING,
       description: DataTypes.TEXT,
+      private: DataTypes.BOOLEAN,
     },
     {}
   );

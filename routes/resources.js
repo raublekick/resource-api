@@ -98,7 +98,19 @@ router.get("/", async (req, res, next) => {
  *          description: A single resource
  */
 router.get("/:id", async (req, res, next) => {
-  var resource = await Resource.findByPk(req.params.id);
+  var resource = await Resource.findByPk(req.params.id, {
+    include: [
+      {
+        model: db.Tag,
+        as: "Tags",
+      },
+      {
+        model: db.User,
+        as: "Owner",
+        attributes: ["firstName", "lastName", "username", "email"],
+      },
+    ],
+  });
   res.send(resource);
 });
 
@@ -181,15 +193,32 @@ router.post(
     console.log(req.body);
 
     const username = req.user.username;
-
     const resource = req.body;
+
     try {
       var name = resource.title
         .toLowerCase()
         .replace(" ", "-")
         .substring(0, 250);
       resource.name = name;
+      resource.OwnerUsername = username;
       var createdResource = await Resource.create(resource);
+
+      var tags = [];
+      // NOTE: Using a Array.foreach breaks asynchronous
+      for (const tag of resource.tags) {
+        if (tag.id) {
+          tags.push(tag.id);
+        } else {
+          // add as new tag
+          var newTag = await db.Tag.findOrCreate({ where: { name: tag } });
+          tags.push(newTag[0].id);
+        }
+      }
+
+      console.log("Tags created");
+      console.log(tags);
+      await createdResource.setTags(tags);
 
       console.log("resource created");
       res
