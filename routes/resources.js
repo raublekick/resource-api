@@ -106,7 +106,7 @@ router.get("/:id", async (req, res, next) => {
       },
       {
         model: db.User,
-        as: "Owner",
+        as: "Owners",
         attributes: ["firstName", "lastName", "username", "email"],
       },
     ],
@@ -156,16 +156,19 @@ router.get("/:id/collection", async (req, res, next) => {
  *          description: A list of resources
  */
 router.get("/:id/belongs-to", async (req, res, next) => {
-  var resources = await Resource.findAll({
-    include: [
-      {
-        model: db.Resource,
-        as: "Collection",
-        where: { "$Collection.id$": req.params.id },
-      },
-    ],
+  // var resources = await Resource.findAll({
+  //   include: [
+  //     {
+  //       model: db.Resource,
+  //       as: "Collection",
+  //       where: { "$Collection.id$": req.params.id },
+  //     },
+  //   ],
+  // });
+  var resources = await Resource.findByPk(req.params.id, {
+    include: ["Parents"],
   });
-  res.send(resources);
+  res.send(resources.Parents);
 });
 
 /**
@@ -201,7 +204,6 @@ router.post(
         .replace(" ", "-")
         .substring(0, 250);
       resource.name = name;
-      resource.OwnerUsername = username;
       var createdResource = await Resource.create(resource);
 
       var tags = [];
@@ -216,8 +218,7 @@ router.post(
         }
       }
 
-      console.log("Tags created");
-      console.log(tags);
+      await createdResource.setOwners([username]);
       await createdResource.setTags(tags);
 
       console.log("resource created");

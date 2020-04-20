@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       as: "OwnedResources",
       foreignKey: "OwnerUsername",
     });
+    User.belongsToMany(models.Resource, {
+      as: "OwnedResourcecs",
+      through: "ResourceOwners",
+    });
   };
   return User;
 };

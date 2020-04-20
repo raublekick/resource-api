@@ -16,15 +16,21 @@ module.exports = (sequelize, DataTypes) => {
   );
   Resource.associate = function (models) {
     // associations can be defined here
-    Resource.belongsTo(models.User, {
-      as: "Owner",
-      foreignKey: "OwnerUsername",
+    Resource.belongsToMany(models.User, {
+      as: "Owners",
+      through: "ResourceOwners",
     });
     Resource.belongsToMany(Resource, {
       as: "Collection",
       through: "ResourceCollection",
       foreignKey: "parentId",
       otherKey: "childId",
+    });
+    Resource.belongsToMany(Resource, {
+      as: "Parents",
+      through: "ResourceCollection",
+      foreignKey: "childId",
+      otherKey: "parentId",
     });
     Resource.belongsToMany(models.Tag, { as: "Tags", through: "ResourceTags" });
   };
