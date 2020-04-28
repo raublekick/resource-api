@@ -174,6 +174,70 @@ router.get("/:id/belongs-to", async (req, res, next) => {
 /**
  * @swagger
  * path:
+ *  /users/resources:
+ *    get:
+ *      summary: Get resources for the logged in user
+ *      tags: [Resources]
+ *      responses:
+ *        "200":
+ *          description: A list of resources associated to the user
+ */
+router.get(
+  "/user/resources",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    const username = req.user.username;
+
+    try {
+      var resources = await Resource.findAll({
+        include: [
+          {
+            model: db.User,
+            as: "Owners",
+            attributes: ["firstName", "lastName", "username", "email"],
+          },
+          // {
+          //   model: Resource,
+          //   as: "Parents",
+          // },
+          {
+            model: Resource,
+            as: "Collection",
+            attributes: [],
+            include: [
+              {
+                model: Resource,
+                as: "Parents",
+                attributes: [],
+              },
+            ],
+          },
+        ],
+        where: {
+          [Op.or]: [
+            {
+              "$Owners.username$": { [Op.eq]: username },
+            },
+            // TODO: Verify that this works!
+            {
+              "$Collection.Parents.id$": { [Op.col]: "Resource.id" },
+            },
+          ],
+        },
+      });
+      res.status(200).send(resources);
+    } catch (error) {
+      console.log(error);
+      res.status(400).send({
+        error: "Could not retrieve resources.",
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * path:
  *  /resources:
  *    post:
  *      summary: Register a new user
@@ -225,6 +289,69 @@ router.post(
       res
         .status(200)
         .send({ id: createdResource.id, name: createdResource.name });
+    } catch (error) {
+      console.log(error);
+      res.status(400).send({
+        error: "Could not create the resource.",
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * path:
+ *  /resources:
+ *    post:
+ *      summary: Register a new user
+ *      tags: [Resources]
+ *      parameters:
+ *        - in: body
+ *          name: resource
+ *          description: Resource object
+ *          required: true
+ *          schema:
+ *            $ref: '#definitions/Resource'
+ *      responses:
+ *        "200":
+ *          description: A resource id
+ */
+router.post(
+  "/collection",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    console.log(req.body);
+
+    const username = req.user.username;
+    const parentId = req.body.parentId;
+    const childId = req.body.childId;
+
+    try {
+      var resource = await Resource.findByPk(parentId, {
+        include: [
+          {
+            model: db.Tag,
+            as: "Tags",
+          },
+          {
+            model: db.User,
+            as: "Owners",
+            attributes: ["firstName", "lastName", "username", "email"],
+            where: {
+              username: username,
+            },
+          },
+        ],
+      });
+
+      // check if resource is owned by user
+      if (resource != null) {
+        await resource.addCollection(childId);
+        console.log("resource created");
+        res.status(200).send({ parentId: parentId, childId: childId });
+      } else {
+        res.status(400).send({ error: "You do not own this resource" });
+      }
     } catch (error) {
       console.log(error);
       res.status(400).send({

@@ -18,12 +18,8 @@ module.exports = (sequelize, DataTypes) => {
   );
   User.associate = function (models) {
     // associations can be defined here
-    User.hasMany(models.Resource, {
-      as: "OwnedResources",
-      foreignKey: "OwnerUsername",
-    });
     User.belongsToMany(models.Resource, {
-      as: "OwnedResourcecs",
+      as: "OwnedResources",
       through: "ResourceOwners",
     });
   };
