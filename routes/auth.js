@@ -110,6 +110,23 @@ router.post("/register", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * path:
+ *  /auth/token:
+ *    post:
+ *      summary: Refreshes auth token
+ *      tags: [Auth]
+ *      parameters:
+ *        - in: body
+ *          name: token
+ *          description: The refresh token
+ *          type: string
+ *          required: true
+ *      responses:
+ *        "200":
+ *          description: Returns a new auth token
+ */
 router.post("/token", async (req, res) => {
   const refreshToken = req.body.token;
   if (refreshToken == null) {
@@ -123,14 +140,33 @@ router.post("/token", async (req, res) => {
       return res.sendStatus(403);
     }
     // TODO: Move token creation to function
-    const token = jwt.sign(
-      JSON.stringify({ username: user.username }),
-      jwtSecret.secret
-    );
+    const payload = {
+      username: user.username,
+      expires: Date.now() + parseInt(process.env.JWT_EXPIRATION_MS),
+    };
+
+    const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
     res.json({ token: token });
   });
 });
 
+/**
+ * @swagger
+ * path:
+ *  /auth/token:
+ *    post:
+ *      summary: Logs out the user and deletes refresh token
+ *      tags: [Auth]
+ *      parameters:
+ *        - in: body
+ *          name: token
+ *          description: The refresh token
+ *          type: string
+ *          required: true
+ *      responses:
+ *        "204":
+ *          description: Indicates user successfully logged out
+ */
 router.delete("/logout", async (req, res) => {
   // TODO: move this to DB
   refreshTokens = refreshTokens.filter((token) => token !== req.body.token);
@@ -218,10 +254,10 @@ router.get("/find", (req, res, next) => {
       console.log("user found in db from route");
       res.status(200).send({
         auth: true,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        lang: user.lang,
+        firstName: user.firstName && user.firstName,
+        lastName: user.lastName && user.lastName,
+        email: user.email && user.email,
+        lang: user.lang && user.lang,
         username: user.username,
         password: user.password,
         message: "user found in db",
