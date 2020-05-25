@@ -6,6 +6,8 @@ var jwtSecret = require("../config/jwtConfig");
 var jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const rounds = 12;
+// TODO: move this to DB
+let refreshTokens = [];
 /**
  * @swagger
  * definitions:
@@ -64,6 +66,7 @@ router.post("/register", async (req, res) => {
       res.status(400).send({ error: "User already exists" });
     }
 
+    // TODO: create user service to create user
     const passwordHash = await bcrypt.hash(user.password, rounds);
     user.password = passwordHash;
 
@@ -82,11 +85,18 @@ router.post("/register", async (req, res) => {
 
       /** generate a signed json web token and return it in the response */
       const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
+      const refresh = jwt.sign(
+        JSON.stringify({ username: user.username }),
+        jwtSecret.refreshSecret
+      );
+      // TODO: Move this to DB
+      refreshTokens.push(refresh);
 
       /** assign our jwt to the cookie */
       res.status(200).send({
         auth: true,
         token: token,
+        refreshToken: refresh,
         user: {
           username: createdUser.username,
           lang: createdUser.lang,
@@ -98,6 +108,33 @@ router.post("/register", async (req, res) => {
       error: "req body should take the form { username, password }",
     });
   }
+});
+
+router.post("/token", async (req, res) => {
+  const refreshToken = req.body.token;
+  if (refreshToken == null) {
+    return res.sendStatus(401);
+  }
+  if (!refreshTokens.includes(refreshToken)) {
+    return res.sendStatus(403);
+  }
+  jwt.verify(refreshToken, jwtSecret.refreshSecret, (err, user) => {
+    if (err) {
+      return res.sendStatus(403);
+    }
+    // TODO: Move token creation to function
+    const token = jwt.sign(
+      JSON.stringify({ username: user.username }),
+      jwtSecret.secret
+    );
+    res.json({ token: token });
+  });
+});
+
+router.delete("/logout", async (req, res) => {
+  // TODO: move this to DB
+  refreshTokens = refreshTokens.filter((token) => token !== req.body.token);
+  res.sendStatus(204);
 });
 
 /**
@@ -138,11 +175,18 @@ router.post("/login", (req, res) => {
 
         /** generate a signed json web token and return it in the response */
         const token = jwt.sign(JSON.stringify(payload), jwtSecret.secret);
+        const refresh = jwt.sign(
+          JSON.stringify({ username: user.username }),
+          jwtSecret.refreshSecret
+        );
+        // TODO: Move this to DB
+        refreshTokens.push(refresh);
 
         /** assign our jwt to the cookie */
         res.status(200).send({
           auth: true,
           token: token,
+          refreshToken: refresh,
           user: {
             username: user.username,
             lang: user.lang,
@@ -162,6 +206,7 @@ router.post("/login", (req, res) => {
  *      tags: [Auth]
  */
 router.get("/find", (req, res, next) => {
+  // TODO: move this into login / register and as a user service
   passport.authenticate("jwt", { session: false }, (err, user, info) => {
     if (err) {
       console.log(err);

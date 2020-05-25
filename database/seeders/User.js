@@ -1,12 +1,12 @@
-"use strict";
+// "use strict";
 
-module.exports = {
-  up: (queryInterface, Sequelize) => {
-    return null;
-  },
+// module.exports = {
+//   up: (queryInterface, Sequelize) => {
+//     return null;
+//   },
 
-  down: (queryInterface, Sequelize) => {
-    //return queryInterface.bulkDelete("Users", null, {});
-    return null;
-  },
-};
+//   down: (queryInterface, Sequelize) => {
+//     //return queryInterface.bulkDelete("Users", null, {});
+//     return null;
+//   },
+// };
