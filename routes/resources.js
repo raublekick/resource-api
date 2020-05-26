@@ -3,10 +3,6 @@ var router = express.Router();
 var passport = require("passport");
 var ResourceService = require("../database/repositories/resources");
 
-const db = require("../database/models");
-const Op = db.Sequelize.Op;
-const Resource = require("../database/models").Resource;
-
 /**
  * @swagger
  * definitions:
