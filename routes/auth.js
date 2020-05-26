@@ -1,6 +1,5 @@
 var express = require("express");
 var router = express.Router();
-var User = require("../database/models").User;
 var UserService = require("../database/repositories/users");
 var passport = require("passport");
 var jwtSecret = require("../config/jwtConfig");

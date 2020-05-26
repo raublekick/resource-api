@@ -1,6 +1,8 @@
 var express = require("express");
 var router = express.Router();
 var passport = require("passport");
+var ResourceService = require("../database/repositories/resources");
+
 const db = require("../database/models");
 const Op = db.Sequelize.Op;
 const Resource = require("../database/models").Resource;
@@ -43,41 +45,8 @@ const Resource = require("../database/models").Resource;
  *          description: A list of resources filtered by search string
  */
 router.get("/", async (req, res, next) => {
-  let resources;
-  var filter = "%" + req.query.search + "%";
-  let filters = {
-    include: [
-      {
-        model: db.Tag,
-        as: "Tags",
-      },
-    ],
-  };
-
-  if (req.query.search) {
-    console.log(filter);
-    filters.where = {
-      [Op.or]: [
-        {
-          name: { [Op.iLike]: filter },
-        },
-        {
-          title: { [Op.iLike]: filter },
-        },
-        {
-          subTitle: { [Op.iLike]: filter },
-        },
-        {
-          description: { [Op.iLike]: filter },
-        },
-        {
-          "$Tags.name$": { [Op.iLike]: filter },
-        },
-      ],
-    };
-  }
-  resources = await Resource.findAll(filters);
-  res.send(resources);
+  let resources = ResourceService.find(req.params.search);
+  return res.send(resources);
 });
 
 /**
@@ -98,20 +67,8 @@ router.get("/", async (req, res, next) => {
  *          description: A single resource
  */
 router.get("/:id", async (req, res, next) => {
-  var resource = await Resource.findByPk(req.params.id, {
-    include: [
-      {
-        model: db.Tag,
-        as: "Tags",
-      },
-      {
-        model: db.User,
-        as: "Owners",
-        attributes: ["firstName", "lastName", "username", "email"],
-      },
-    ],
-  });
-  res.send(resource);
+  let resource = ResourceService.findById(req.params.id);
+  return res.send(resource);
 });
 
 /**
@@ -132,10 +89,8 @@ router.get("/:id", async (req, res, next) => {
  *          description: A list of resources
  */
 router.get("/:id/collection", async (req, res, next) => {
-  var resource = await Resource.findByPk(req.params.id, {
-    include: ["Collection"],
-  });
-  res.send(resource.Collection);
+  var collection = ResourceService.findCollectionByResourceId(req.params.id);
+  return res.send(collection);
 });
 
 /**
@@ -156,19 +111,8 @@ router.get("/:id/collection", async (req, res, next) => {
  *          description: A list of resources
  */
 router.get("/:id/belongs-to", async (req, res, next) => {
-  // var resources = await Resource.findAll({
-  //   include: [
-  //     {
-  //       model: db.Resource,
-  //       as: "Collection",
-  //       where: { "$Collection.id$": req.params.id },
-  //     },
-  //   ],
-  // });
-  var resources = await Resource.findByPk(req.params.id, {
-    include: ["Parents"],
-  });
-  res.send(resources.Parents);
+  let parents = ResourceService.findParentsByResourceId(req.params.id);
+  return res.send(parents);
 });
 
 /**
@@ -186,49 +130,12 @@ router.get(
   "/user/resources",
   passport.authenticate("jwt", { session: false }),
   async (req, res, next) => {
-    const username = req.user.username;
-
     try {
-      var resources = await Resource.findAll({
-        include: [
-          {
-            model: db.User,
-            as: "Owners",
-            attributes: ["firstName", "lastName", "username", "email"],
-          },
-          // {
-          //   model: Resource,
-          //   as: "Parents",
-          // },
-          {
-            model: Resource,
-            as: "Collection",
-            attributes: [],
-            include: [
-              {
-                model: Resource,
-                as: "Parents",
-                attributes: [],
-              },
-            ],
-          },
-        ],
-        where: {
-          [Op.or]: [
-            {
-              "$Owners.username$": { [Op.eq]: username },
-            },
-            // TODO: Verify that this works!
-            {
-              "$Collection.Parents.id$": { [Op.col]: "Resource.id" },
-            },
-          ],
-        },
-      });
-      res.status(200).send(resources);
+      var resources = ResourceService.findResourcesByUser(req.user.username);
+      return res.status(200).send(resources);
     } catch (error) {
       console.log(error);
-      res.status(400).send({
+      return res.status(400).send({
         error: "Could not retrieve resources.",
       });
     }
@@ -263,35 +170,15 @@ router.post(
     const resource = req.body;
 
     try {
-      var name = resource.title
-        .toLowerCase()
-        .replace(" ", "-")
-        .substring(0, 250);
-      resource.name = name;
-      var createdResource = await Resource.create(resource);
-
-      var tags = [];
-      // NOTE: Using a Array.foreach breaks asynchronous
-      for (const tag of resource.tags) {
-        if (tag.id) {
-          tags.push(tag.id);
-        } else {
-          // add as new tag
-          var newTag = await db.Tag.findOrCreate({ where: { name: tag } });
-          tags.push(newTag[0].id);
-        }
-      }
-
-      await createdResource.setOwners([username]);
-      await createdResource.setTags(tags);
+      let createdResource = ResourceService.create(resource, username);
 
       console.log("resource created");
-      res
+      return res
         .status(200)
         .send({ id: createdResource.id, name: createdResource.name });
     } catch (error) {
       console.log(error);
-      res.status(400).send({
+      return res.status(400).send({
         error: "Could not create the resource.",
       });
     }
@@ -320,41 +207,22 @@ router.post(
   "/collection",
   passport.authenticate("jwt", { session: false }),
   async (req, res, next) => {
-    console.log(req.body);
-
-    const username = req.user.username;
-    const parentId = req.body.parentId;
-    const childId = req.body.childId;
-
     try {
-      var resource = await Resource.findByPk(parentId, {
-        include: [
-          {
-            model: db.Tag,
-            as: "Tags",
-          },
-          {
-            model: db.User,
-            as: "Owners",
-            attributes: ["firstName", "lastName", "username", "email"],
-            where: {
-              username: username,
-            },
-          },
-        ],
-      });
+      let createdCollection = ResourceService.addCollection(
+        req.body.parentId,
+        req.body.childId,
+        usernareq.user.usernameme
+      );
 
-      // check if resource is owned by user
-      if (resource != null) {
-        await resource.addCollection(childId);
+      if (createdCollection) {
         console.log("resource created");
-        res.status(200).send({ parentId: parentId, childId: childId });
+        return res.status(200).send({ parentId: parentId, childId: childId });
       } else {
-        res.status(400).send({ error: "You do not own this resource" });
+        return res.status(400).send({ error: "You do not own this resource" });
       }
     } catch (error) {
       console.log(error);
-      res.status(400).send({
+      return res.status(400).send({
         error: "Could not create the resource.",
       });
     }
