@@ -119,7 +119,7 @@ router.post("/register", async (req, res) => {
 router.post("/token", async (req, res) => {
   const refreshToken = req.body.token;
   if (refreshToken == null) {
-    return res.sendStatus(401);
+    return res.sendStatus(403);
   }
   if (!refreshTokens.includes(refreshToken)) {
     return res.sendStatus(403);

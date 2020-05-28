@@ -59,4 +59,28 @@ app.use("/users", usersRouter);
 app.use("/resources", resourcesRoutes);
 app.use("/tags", tagsRoutes);
 
+app.use((err, req, res, next) => {
+  let responseStatusCode = 500;
+  let responseObj = {
+    success: false,
+    data: [],
+    error: err,
+    message: "There was an internal server error",
+  };
+
+  // if request has error
+  if (err) {
+    // if jwt expired, send 401
+    if (err === "jwt expired") {
+      responseStatusCode = 401;
+      responseObj.message =
+        "You cannot get the details. You are not authorized to access this protected resource";
+    }
+  }
+
+  if (!res.headersSent) {
+    res.status(responseStatusCode).json(responseObj);
+  }
+});
+
 module.exports = app;

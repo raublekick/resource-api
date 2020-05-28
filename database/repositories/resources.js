@@ -1,4 +1,4 @@
-const db = require("../database/models");
+const db = require("../models");
 const Op = db.Sequelize.Op;
 const Resource = require("../models").Resource;
 
