@@ -46,7 +46,7 @@ router.get("/", async (req, res, next) => {
   if (req.user) {
     username = req.user.username;
   }
-  let resources = await ResourceService.find(req.query.search, "raublekick2");
+  let resources = await ResourceService.find(req.query.search, username);
   return res.send(resources);
 });
 
