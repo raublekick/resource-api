@@ -41,7 +41,12 @@ var ResourceService = require("../database/repositories/resources");
  *          description: A list of resources filtered by search string
  */
 router.get("/", async (req, res, next) => {
-  let resources = ResourceService.find(req.params.search);
+  console.log(req.user);
+  let username = null;
+  if (req.user) {
+    username = req.user.username;
+  }
+  let resources = await ResourceService.find(req.query.search, "raublekick2");
   return res.send(resources);
 });
 
@@ -63,7 +68,7 @@ router.get("/", async (req, res, next) => {
  *          description: A single resource
  */
 router.get("/:id", async (req, res, next) => {
-  let resource = ResourceService.findById(req.params.id);
+  let resource = await ResourceService.findById(req.params.id);
   return res.send(resource);
 });
 
@@ -85,7 +90,9 @@ router.get("/:id", async (req, res, next) => {
  *          description: A list of resources
  */
 router.get("/:id/collection", async (req, res, next) => {
-  var collection = ResourceService.findCollectionByResourceId(req.params.id);
+  var collection = await ResourceService.findCollectionByResourceId(
+    req.params.id
+  );
   return res.send(collection);
 });
 
@@ -107,7 +114,7 @@ router.get("/:id/collection", async (req, res, next) => {
  *          description: A list of resources
  */
 router.get("/:id/belongs-to", async (req, res, next) => {
-  let parents = ResourceService.findParentsByResourceId(req.params.id);
+  let parents = await ResourceService.findParentsByResourceId(req.params.id);
   return res.send(parents);
 });
 
@@ -127,7 +134,9 @@ router.get(
   passport.authenticate("jwt", { session: false }),
   async (req, res, next) => {
     try {
-      var resources = ResourceService.findResourcesByUser(req.user.username);
+      var resources = await ResourceService.findResourcesByUser(
+        req.user.username
+      );
       return res.status(200).send(resources);
     } catch (error) {
       console.log(error);
@@ -166,7 +175,7 @@ router.post(
     const resource = req.body;
 
     try {
-      let createdResource = ResourceService.create(resource, username);
+      let createdResource = await ResourceService.create(resource, username);
 
       console.log("resource created");
       return res
@@ -204,7 +213,7 @@ router.post(
   passport.authenticate("jwt", { session: false }),
   async (req, res, next) => {
     try {
-      let createdCollection = ResourceService.addCollection(
+      let createdCollection = await ResourceService.addCollection(
         req.body.parentId,
         req.body.childId,
         usernareq.user.usernameme

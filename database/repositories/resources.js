@@ -3,8 +3,10 @@ const Op = db.Sequelize.Op;
 const Resource = require("../models").Resource;
 
 var ResourceRepository = {
-  find: async function (search) {
+  find: async function (search, username) {
     var filter = "%" + search + "%";
+    let privateFilter = {};
+    let searchFilter = {};
     let filters = {
       include: [
         {
@@ -12,11 +14,30 @@ var ResourceRepository = {
           as: "Tags",
         },
       ],
+      where: {},
     };
 
-    if (searchsearch) {
+    if (username) {
+      filters.include.push({
+        model: db.User,
+        as: "Owners",
+        attributes: [],
+      });
+      privateFilter = {
+        [Op.or]: [
+          { private: false },
+          {
+            "$Owners.username$": { [Op.eq]: username },
+          },
+        ],
+      };
+    } else {
+      privateFilter = { private: false };
+    }
+
+    if (search) {
       console.log(filter);
-      filters.where = {
+      searchFilter = {
         [Op.or]: [
           {
             name: { [Op.iLike]: filter },
@@ -36,6 +57,10 @@ var ResourceRepository = {
         ],
       };
     }
+
+    filters.where = {
+      [Op.and]: [privateFilter, searchFilter],
+    };
     resources = await Resource.findAll(filters);
 
     return resources;
