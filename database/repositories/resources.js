@@ -89,7 +89,7 @@ var ResourceRepository = {
 
     var tags = [];
     // NOTE: Using a Array.foreach breaks asynchronous
-    for (const tag of resource.tags) {
+    for (const tag of resource.Tags) {
       if (tag.id) {
         tags.push(tag.id);
       } else {
@@ -103,6 +103,46 @@ var ResourceRepository = {
     await createdResource.setTags(tags);
 
     return createdResource;
+  },
+  edit: async function (resource, username) {
+    var name = resource.title.toLowerCase().replace(" ", "-").substring(0, 250);
+    resource.name = name;
+    await Resource.update(
+      {
+        name: name,
+        title: resource.title,
+        subTitle: resource.subTitle,
+        coverPhoto: resource.coverPhoto,
+        url: resource.url,
+        address: resource.address,
+        description: resource.description,
+        private: resource.private,
+      },
+      {
+        where: {
+          id: resource.id,
+        },
+      }
+    );
+
+    var updatedResource = await this.findById(resource.id);
+
+    var tags = [];
+    // NOTE: Using a Array.foreach breaks asynchronous
+    for (const tag of resource.Tags) {
+      if (tag.id) {
+        tags.push(tag.id);
+      } else {
+        // add as new tag
+        var newTag = await db.Tag.findOrCreate({ where: { name: tag } });
+        tags.push(newTag[0].id);
+      }
+    }
+
+    //await updatedResource.setOwners([username]);
+    await updatedResource.setTags(tags);
+
+    return updatedResource;
   },
   findCollectionByResourceId: async function (id) {
     var resource = await Resource.findByPk(id, {

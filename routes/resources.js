@@ -194,6 +194,47 @@ router.post(
  * @swagger
  * path:
  *  /resources:
+ *    put:
+ *      summary: Edit a resource
+ *      tags: [Resources]
+ *      parameters:
+ *        - in: body
+ *          name: resource
+ *          description: Resource object
+ *          required: true
+ *          schema:
+ *            $ref: '#definitions/Resource'
+ *      responses:
+ *        "200":
+ *          description: A resource id
+ */
+router.put(
+  "/",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    console.log(req.body);
+
+    const username = req.user.username;
+    const resource = req.body;
+
+    try {
+      let editedResource = await ResourceService.edit(resource, username);
+
+      console.log("resource edited");
+      return res.status(200).send();
+    } catch (error) {
+      console.log(error);
+      return res.status(400).send({
+        error: "Could not edit the resource.",
+      });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * path:
+ *  /resources:
  *    post:
  *      summary: Register a new user
  *      tags: [Resources]
