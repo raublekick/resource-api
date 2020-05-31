@@ -125,6 +125,12 @@ router.get("/:id/belongs-to", async (req, res, next) => {
  *    get:
  *      summary: Get resources for the logged in user
  *      tags: [Resources]
+ *      parameters:
+ *        - in: query
+ *          name: search
+ *          type: string
+ *          required: false
+ *          description: A search string to filter results
  *      responses:
  *        "200":
  *          description: A list of resources associated to the user
@@ -135,7 +141,8 @@ router.get(
   async (req, res, next) => {
     try {
       var resources = await ResourceService.findResourcesByUser(
-        req.user.username
+        req.user.username,
+        req.query.search
       );
       return res.status(200).send(resources);
     } catch (error) {
@@ -257,12 +264,14 @@ router.post(
       let createdCollection = await ResourceService.addCollection(
         req.body.parentId,
         req.body.childId,
-        usernareq.user.usernameme
+        req.user.username
       );
 
       if (createdCollection) {
         console.log("resource created");
-        return res.status(200).send({ parentId: parentId, childId: childId });
+        return res
+          .status(200)
+          .send({ parentId: req.body.parentId, childId: req.body.childId });
       } else {
         return res.status(400).send({ error: "You do not own this resource" });
       }

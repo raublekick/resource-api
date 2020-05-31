@@ -152,19 +152,36 @@ var ResourceRepository = {
     return resource.Collection;
   },
   findParentsByResourceId: async function (id) {
-    var resources = await Resource.findByPk(req.params.id, {
+    var resources = await Resource.findByPk(id, {
       include: ["Parents"],
     });
 
     return resources.Parents;
   },
-  findResourcesByUser: async function (username) {
-    var resources = await Resource.findAll({
+  findResourcesByUser: async function (username, search) {
+    var filter = "%" + search + "%";
+    let searchFilter = {};
+    let ownerFilter = {
+      [Op.or]: [
+        {
+          "$Owners.username$": { [Op.eq]: username },
+        },
+        // TODO: Verify that this works!
+        {
+          "$Collection.Parents.id$": { [Op.col]: "Resource.id" },
+        },
+      ],
+    };
+    let filters = {
       include: [
         {
           model: db.User,
           as: "Owners",
           attributes: ["firstName", "lastName", "username", "email"],
+        },
+        {
+          model: db.Tag,
+          as: "Tags",
         },
         // {
         //   model: Resource,
@@ -183,18 +200,36 @@ var ResourceRepository = {
           ],
         },
       ],
-      where: {
+      where: {},
+    };
+    if (search) {
+      console.log(filter);
+      searchFilter = {
         [Op.or]: [
           {
-            "$Owners.username$": { [Op.eq]: username },
+            name: { [Op.iLike]: filter },
           },
-          // TODO: Verify that this works!
           {
-            "$Collection.Parents.id$": { [Op.col]: "Resource.id" },
+            title: { [Op.iLike]: filter },
+          },
+          {
+            subTitle: { [Op.iLike]: filter },
+          },
+          {
+            description: { [Op.iLike]: filter },
+          },
+          {
+            "$Tags.name$": { [Op.iLike]: filter },
           },
         ],
-      },
-    });
+      };
+    }
+
+    filters.where = {
+      [Op.and]: [ownerFilter, searchFilter],
+    };
+
+    var resources = await Resource.findAll(filters);
 
     return resources;
   },
